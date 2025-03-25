@@ -7,6 +7,6 @@ function codingScoreCheck(marks, cutoffScore) {
             } else {
                 reject("Sorry you haven't cleared the coding round.")
             }
-        }, 20);
+        }, 2000);
     });
 }
