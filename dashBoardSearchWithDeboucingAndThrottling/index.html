@@ -159,7 +159,7 @@
       window.addEventListener("scroll", function () {
         let now = Date.now();
         if (now - lastScrollTime >= throttleDelay) {
-          if (window.pageYOffset > 300) {
+          if (window.pageYOffset > 200) {
             backToTopBtn.style.display = "block";
           } else {
             backToTopBtn.style.display = "none";
