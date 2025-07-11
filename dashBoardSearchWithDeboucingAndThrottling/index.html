@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Name Search App</title>
+    <style>
+      /* Main body styling - simple and clean */
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f9f9f9;
+      }
+
+      /* Search input styling */
+      #searchInput {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 20px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+        box-sizing: border-box;
+      }
+
+      /* Container for results */
+      #container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
+        margin-bottom: 30px;
+      }
+
+      #container div {
+        padding: 10px;
+        background: white;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+
+      /* No matches message */
+      #container p {
+        grid-column: 1 / -1;
+        text-align: center;
+        color: #666;
+      }
+
+      /* Back to top button */
+      #backToTop {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        display: none;
+        padding: 10px 15px;
+        background: #2c3e50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+      }
+
+      #backToTop:hover {
+        background: #1a252f;
+      }
+
+      /* Counter styling */
+      .counter-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        font-size: 14px;
+        z-index: 100;
+      }
+
+      .counter {
+        margin: 8px 0;
+        color: #555;
+      }
+
+      .counter span {
+        font-weight: bold;
+        color: #2c3e50;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        #container {
+          grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        }
+
+        .counter-container {
+          position: static;
+          margin-bottom: 20px;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="counter-container">
+      <div class="counter">
+        Total KeyStrokes: <span id="keyStrokeCount">0</span>
+      </div>
+      <div class="counter">
+        Debounced Searches: <span id="searchCount">0</span>
+      </div>
+    </div>
+
+    <input type="text" id="searchInput" placeholder="Search for names..." />
+    <div id="container"></div>
+
+    <button id="backToTop">↑ Back to Top</button>
+
+    <script>
+      // [Your existing JavaScript code remains exactly the same]
+      let firstParts = ["Al", "Ben", "Car", "Dan", "Em", "Fran", "Gab", "Hal"];
+      let secondParts = [
+        "ex",
+        "jamin",
+        "son",
+        "ielle",
+        "ma",
+        "cis",
+        "riel",
+        "lie",
+      ];
+
+      let names = [];
+      for (let i = 0; i <= 200; i++) {
+        let first = firstParts[Math.floor(Math.random() * firstParts.length)];
+        let second =
+          secondParts[Math.floor(Math.random() * secondParts.length)];
+        names.push(first + second);
+      }
+
+      let searchInput = document.getElementById("searchInput");
+      let container = document.getElementById("container");
+      let backToTopBtn = document.getElementById("backToTop");
+      let keyStrokeCount = document.getElementById("keyStrokeCount");
+      let searchCount = document.getElementById("searchCount");
+
+      let totalKeyStrokes = 0;
+      let totalDebouncedSearches = 0;
+
+      let lastScrollTime = 0;
+      const throttleDelay = 500;
+
+      window.addEventListener("scroll", function () {
+        let now = Date.now();
+        if (now - lastScrollTime >= throttleDelay) {
+          if (window.pageYOffset > 300) {
+            backToTopBtn.style.display = "block";
+          } else {
+            backToTopBtn.style.display = "none";
+          }
+          lastScrollTime = now;
+        }
+      });
+
+      backToTopBtn.addEventListener("click", function () {
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+      });
+
+      function searchNames() {
+        totalDebouncedSearches++;
+        searchCount.textContent = totalDebouncedSearches;
+
+        let searchTerm = searchInput.value.toLowerCase();
+        let filteredNames = names.filter((name) =>
+          name.toLowerCase().includes(searchTerm)
+        );
+        displayNames(filteredNames);
+      }
+
+      function debounce(func, delay) {
+        let timer;
+
+        return function () {
+          totalKeyStrokes++;
+          keyStrokeCount.textContent = totalKeyStrokes;
+          clearTimeout(timer);
+
+          timer = setTimeout(() => {
+            func();
+          }, delay);
+        };
+      }
+
+      function displayNames(filteredNames) {
+        container.innerHTML = "";
+
+        if (filteredNames.length == 0) {
+          container.innerHTML = "<p>No Match found</p>";
+          return;
+        }
+
+        filteredNames.forEach((name) => {
+          let div = document.createElement("div");
+
+          div.innerText = name;
+
+          container.appendChild(div);
+        });
+      }
+
+      let debounceSearch = debounce(searchNames, 1000);
+
+      searchInput.addEventListener("input", debounceSearch);
+
+      displayNames(names);
+    </script>
+  </body>
+</html>
