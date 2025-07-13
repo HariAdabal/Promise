@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Movie Browser</title>
+  </head>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .filterAndSort {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+      justify-content: center;
+    }
+
+    select {
+      padding: 8px 12px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+
+    .movie-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .movie-card {
+      text-align: center;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .movie-card img {
+      width: 100%;
+      height: 400px;
+      object-fit: contain;
+    }
+
+    .movie-info {
+      width: 100%;
+      text-align: center;
+      padding: 15px;
+    }
+
+    .movie-info h3 {
+      text-align: center;
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+
+    .genres {
+      justify-content: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .genres span {
+      background: #f0f0f0;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 12px;
+    }
+
+    .rating {
+      justify-content: center;
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .rating svg {
+      color: gold;
+      margin-right: 5px;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .pagination button {
+      padding: 8px 16px;
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .pagination button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .error {
+      color: red;
+      text-align: center;
+    }
+  </style>
+  <body>
+    <h1>Movie Database</h1>
+    <div class="filterAndSort">
+      <select id="filterGenre">
+        <option value="">All</option>
+        <option value="Drama">Drama</option>
+        <option value="Science-Fiction">Sci-Fi</option>
+        <option value="Thriller">Thriller</option>
+        <option value="Action">Action</option>
+        <option value="Crime">Crime</option>
+        <option value="Horror">Horror</option>
+        <option value="Romance">Romance</option>
+      </select>
+
+      <select id="sortBy">
+        <option value="default">Default</option>
+        <option value="rating-desc">Rating: High-Low</option>
+        <option value="rating-asc">Rating: Low-High</option>
+        <option value="title-asc">Title: A-Z</option>
+      </select>
+    </div>
+
+    <div id="Container" class="movie-grid"></div>
+
+    <div class="pagination">
+      <button id="prev-btn">Prev</button>
+      <span id="page-number">1</span>
+      <button id="next-btn">Next</button>
+    </div>
+  </body>
+  <script>
+    let movieGrid = document.getElementById("Container");
+    let genreFilter = document.getElementById("filterGenre");
+    let sortBy = document.getElementById("sortBy");
+    let prevBtn = document.getElementById("prev-btn");
+    let nextBtn = document.getElementById("next-btn");
+    let pageNumber = document.getElementById("page-number");
+
+    let movies = [];
+    let currentPage = 1;
+    let moviesPerPage = 6;
+
+    window.addEventListener("DOMContentLoaded", async function () {
+      try {
+        movies = await getMovieData();
+
+        displayMovies();
+
+        setupEventListners();
+      } catch (error) {
+        movieGrid.innerHTML =
+          '<p class = "error">OOPS ! could not load movies. Please try again later.</p>';
+        console.error("Error:", error);
+      }
+    });
+
+    async function getMovieData() {
+      let res = await fetch("https://api.tvmaze.com/shows");
+      let data = await res.json();
+
+      let formattedMovies = [];
+      data.forEach((show) => {
+        formattedMovies.push({
+          id: show.id,
+          title: show.name,
+          genres: show.genres,
+          rating: show.rating?.average || "No rating",
+          image: show.image?.medium || "no-image.jpg",
+        });
+      });
+
+      return formattedMovies;
+    }
+
+    function displayMovies() {
+      let filteredMovies = filterMovies();
+      filteredMovies = sortMovies(filteredMovies);
+
+      let totalPages = Math.ceil(filteredMovies.length / moviesPerPage);
+      let startIndex = (currentPage - 1) * moviesPerPage;
+      let endIndex = startIndex + moviesPerPage;
+      let moviesToShow = filteredMovies.slice(startIndex, endIndex);
+
+      updatePagination(totalPages);
+
+      movieGrid.innerHTML = "";
+
+      if (moviesToShow.length == 0) {
+        movieGrid.innerHTML = '<p class = "error">No movies found.</p>';
+        return;
+      }
+
+      moviesToShow.forEach((movie) => {
+        let movieCard = document.createElement("div");
+        movieCard.className = "movie-card";
+        movieCard.innerHTML = `
+          <img src="${movie.image}" alt="${movie.title}">
+          <h3>${movie.title}</h3>
+          <div class="genres">
+              ${movie.genres.map((genre) => `<span>${genre}</span>`).join("")}
+          </div>
+          <div class="rating">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+              </svg>
+              ${movie.rating || "N/A"}
+          </div>
+        `;
+
+        movieGrid.appendChild(movieCard);
+      });
+    }
+
+    function filterMovies() {
+      let selectedGenre = genreFilter.value;
+      if (!selectedGenre) return [...movies];
+
+      return movies.filter((movie) => movie.genres.includes(selectedGenre));
+    }
+
+    function sortMovies(movieList) {
+      let sortedMovies = [...movieList];
+
+      if (sortBy.value == "rating-desc") {
+        sortedMovies.sort((a, b) => b.rating - a.rating);
+      } else if (sortBy.value == "rating-asc") {
+        sortedMovies.sort((a, b) => a.rating - b.rating);
+      } else if (sortBy.value == "title-asc") {
+        sortedMovies.sort((a, b) => a.title.localeCompare(b.title));
+      }
+      return sortedMovies;
+    }
+
+    function updatePagination(totalPages) {
+      pageNumber.textContent = currentPage;
+      prevBtn.disabled = currentPage == 1;
+      nextBtn.disabled = currentPage == totalPages || totalPages == 0;
+    }
+
+    function setupEventListners() {
+      genreFilter.addEventListener("change", () => {
+        currentPage = 1;
+        displayMovies();
+      });
+
+      sortBy.addEventListener("change", () => {
+        currentPage = 1;
+        displayMovies();
+      });
+
+      prevBtn.addEventListener("click", () => {
+        if (currentPage > 1) {
+          currentPage--;
+          displayMovies();
+        }
+      });
+
+      nextBtn.addEventListener("click", () => {
+        let filteredMovies = filterMovies();
+        let totalPages = Math.ceil(filteredMovies.length / moviesPerPage);
+
+        if (currentPage < totalPages) {
+          currentPage++;
+          displayMovies();
+        }
+      });
+
+      function showError(message) {
+        movieGrid.innerHTML = `<p class="error">${message}</p>`;
+      }
+    }
+  </script>
+</html>
